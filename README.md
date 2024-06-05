@@ -5,21 +5,13 @@
 
 Related:
 - Expo Issue: https://github.com/expo/expo/issues/27526
-- RN Flipper Issue: https://github.com/facebook/react-native/issues/28835 => With React-Native, SSE aka EventSource does not receive Events on Android#28835
-- event-source-polyfill PR: https://github.com/Yaffle/EventSource/pull/228
 
-Plugins that patch the problems: 
-- [./plugins/withAndroidReactNativeSSEPatch.ts](./plugins/withAndroidReactNativeSSEPatch.ts)
+Plugins that patch the problems:
 - [./plugins/withAndroidExpoSSEPatch.ts](./plugins/withAndroidExpoSSEPatch.ts)
 > How to use expo plugins: https://docs.expo.dev/config-plugins/plugins-and-mods/
 
 Essentially, the plugin patch consists in:
-- commenting out the Flipper initialization
-- checking for content type `text/event-stream` in https://github.com/expo/expo/blob/5bd5d1695f932b8448950bb5d927a06bca27547c/packages/expo-modules-core/android/src/main/java/expo/modules/kotlin/devtools/ExpoRequestCdpInterceptor.kt#L57
-
-### Side note about event-source-polyfill
-Had to patch package `event-source-polyfill` as, while in release variant, it crashes the application when there is a connexion error. More there: https://github.com/Yaffle/EventSource/pull/228#issuecomment-1986087336  
-That is a side issue and doesn't remove the fact that expo and react-native are not letting the sse streams through.
+- Removing the stream blocking read in https://github.com/expo/expo/commit/f4416ebd6e6b10581c6a51c484df2f81cde3d65f#diff-e7c9344e26708470892af8b39408ec4c0cea722708cf8459f152a4732b0c94fbR106
 
 ## Reproducing the problem
 ### 1. Run server
@@ -42,7 +34,7 @@ npm install
 npm run android:nofix
 
 # once the app is started
-adb reverse tcp:3000 tcp:3000 
+adb reverse tcp:3000 tcp:3000
 ```
 
 In app:
@@ -59,16 +51,16 @@ npm install
 npm run android
 
 # once the app is started
-adb reverse tcp:3000 tcp:3000 
+adb reverse tcp:3000 tcp:3000
 ```
 
 In app:
 1. Press Open Connexion => should print
-   > [type: open]  
-   > [type: message  
-   >  data: {"num": 1}]  
-   > [type: message  
-   >  data: {"num": 2}]  
+   > [type: open]
+   > [type: message
+   >  data: {"num": 1}]
+   > [type: message
+   >  data: {"num": 2}]
    > etc.
 
 ### 4. release build
@@ -84,16 +76,16 @@ npm run android:nofix -- --variant release --no-build-cache
 npm run android -- --variant release --no-build-cache
 
 # once the app is started
-adb reverse tcp:3000 tcp:3000 
+adb reverse tcp:3000 tcp:3000
 ```
 
 In app:
 1. Press Open Connexion => should print
-   > [type: open]  
-   > [type: message  
-   >  data: {"num": 1}]  
-   > [type: message  
-   >  data: {"num": 2}]  
+   > [type: open]
+   > [type: message
+   >  data: {"num": 1}]
+   > [type: message
+   >  data: {"num": 2}]
    > etc.
 
 ## Appendix
@@ -107,11 +99,11 @@ In app:
       Node: 20.10.0 - ~/.nvm/versions/node/v20.10.0/bin/node
       npm: 10.5.0 - ~/.nvm/versions/node/v20.10.0/bin/npm
     npmPackages:
-      expo: ~50.0.11 => 50.0.11 
-      react: 18.2.0 => 18.2.0 
-      react-dom: 18.2.0 => 18.2.0 
-      react-native: 0.73.4 => 0.73.4 
-      react-native-web: ~0.19.6 => 0.19.10 
+      expo: ~50.0.11 => 50.0.11
+      react: 18.2.0 => 18.2.0
+      react-dom: 18.2.0 => 18.2.0
+      react-native: 0.73.4 => 0.73.4
+      react-native-web: ~0.19.6 => 0.19.10
     npmGlobalPackages:
       eas-cli: 7.2.0
     Expo Workflow: bare

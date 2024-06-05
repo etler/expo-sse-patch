@@ -11,7 +11,7 @@ const PATCH_TAG = '[SSE_PATCH]'
 /**
  * Prevents expo's CdpInterceptor from breaking on streams
  *
- * Essentially applies in {projectRoot}/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/devtools/ExpoRequestCdpInterceptor.kt
+ * Essentially applies in {projectRoot}/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/devtools/ExpoNetworkInspectOkHttpInterceptors.kt
  * ```diff
  * - if (response.peekBody(ExpoNetworkInspectOkHttpNetworkInterceptor.MAX_BODY_SIZE + 1).contentLength() <= ExpoNetworkInspectOkHttpNetworkInterceptor.MAX_BODY_SIZE) {
  * + if (response.body?.contentType()?.type == "text" && response.body?.contentType()?.subtype == "event-stream") {
@@ -28,7 +28,7 @@ export function withAndroidExpoSSEPatch(config: ExpoConfig) {
   return withDangerousMod(config, [
     'android',
     async (config) => {
-      // {projectRoot}/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/devtools/ExpoRequestCdpInterceptor.kt
+      // {projectRoot}/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/devtools/ExpoNetworkInspectOkHttpInterceptors.kt
       const projectRoot = config.modRequest.projectRoot
       const expoModuleCorePath = path.join(projectRoot, 'node_modules', 'expo-modules-core')
       const expoModuleCoreExists = await directoryExistsAsync(expoModuleCorePath)
@@ -39,11 +39,11 @@ export function withAndroidExpoSSEPatch(config: ExpoConfig) {
 
       const interceptorPath = path.join(
         expoModuleCorePath,
-        'android/src/main/java/expo/modules/kotlin/devtools/ExpoRequestCdpInterceptor.kt',
+        'android/src/main/java/expo/modules/kotlin/devtools/ExpoNetworkInspectOkHttpInterceptors.kt',
       )
       assert(
         interceptorPath,
-        `SSE_PATCH_ERR: ExpoRequestCdpInterceptor not found at android/src/main/java/expo/modules/kotlin/devtools/ExpoRequestCdpInterceptor.kt`,
+        `SSE_PATCH_ERR: ExpoNetworkInspectOkHttpInterceptors not found at android/src/main/java/expo/modules/kotlin/devtools/ExpoNetworkInspectOkHttpInterceptors.kt`,
       )
       const interceptor = getFileInfo(interceptorPath)
 
@@ -52,8 +52,7 @@ export function withAndroidExpoSSEPatch(config: ExpoConfig) {
         return config
       }
 
-      const breakStr =
-        'if (response.peekBody(ExpoNetworkInspectOkHttpNetworkInterceptor.MAX_BODY_SIZE + 1).contentLength() <= ExpoNetworkInspectOkHttpNetworkInterceptor.MAX_BODY_SIZE) {'
+      const breakStr = 'if (peeked.request(byteCount + 1)) {'
       const start = interceptor.contents.indexOf(breakStr)
       if (start < 0) {
         throw new Error('SSE_PATCH_ERR: Could not find interceptor break condition')
@@ -62,11 +61,8 @@ export function withAndroidExpoSSEPatch(config: ExpoConfig) {
       interceptor.contents = replaceContentsWithOffset(
         interceptor.contents,
         `
-    // ${PATCH_TAG}: Ignore text/event-stream types of responses
-    // response.peekBody breaks for streams.
-    if (response.body?.contentType()?.type == "text" && response.body?.contentType()?.subtype == "event-stream") {
-      // do nothing for now
-    } else if (response.peekBody(ExpoNetworkInspectOkHttpNetworkInterceptor.MAX_BODY_SIZE + 1).contentLength() <= ExpoNetworkInspectOkHttpNetworkInterceptor.MAX_BODY_SIZE) {
+    // ${PATCH_TAG}: Remove peeked.request call
+    if (true) {
 `,
         start,
         start + breakStr.length,
